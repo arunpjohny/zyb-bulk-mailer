@@ -10,7 +10,7 @@
 
 	<appender name="FILE"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<file>mailer.log</file>
+		<file>logs/mailer.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<fileNamePattern>cougar-%d{yyyy-MM-dd}.log</fileNamePattern>
 			<maxHistory>30</maxHistory>
@@ -25,5 +25,6 @@
 
 	<root level="DEBUG">
 		<appender-ref ref="STDOUT" />
+		<appender-ref ref="FILE" />
 	</root>
 </configuration>
