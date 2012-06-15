@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -63,7 +64,12 @@ public class Main {
 	}
 
 	private static List<String> getFields(String fields) {
-		return null;
+		String[] stringList = fields.split(",");
+		List<String> list = new ArrayList<String>();
+		for (String string : stringList) {
+			list.add(StringUtils.trimToEmpty(string));
+		}
+		return list;
 	}
 
 	private static File getFile(String name) throws FileNotFoundException {

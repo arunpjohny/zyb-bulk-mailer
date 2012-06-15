@@ -4,15 +4,23 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 import javax.mail.internet.MimeMessage;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
+import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 
 public class Mailer {
 	private Logger logger;
@@ -24,6 +32,8 @@ public class Mailer {
 	private String html;
 	private String plain;
 
+	private int emailIndex;
+
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
@@ -34,6 +44,9 @@ public class Mailer {
 
 	public void setFields(List<String> fields) {
 		this.fields = fields;
+		if (fields != null) {
+			this.emailIndex = fields.indexOf("email");
+		}
 	}
 
 	public void setFrom(String from) {
@@ -57,19 +70,21 @@ public class Mailer {
 		BufferedReader reader = null;
 		try {
 			reader = new BufferedReader(new FileReader(source));
-			String strLine;
-			while ((strLine = reader.readLine()) != null) {
+			String line;
+			while ((line = reader.readLine()) != null) {
 				try {
-					final String email = strLine;
+					final Record record = getRecord(line);
 					MimeMessagePreparator preparator = new MimeMessagePreparator() {
 						public void prepare(MimeMessage mimeMessage)
 								throws Exception {
 							MimeMessageHelper messageHelper = new MimeMessageHelper(
 									mimeMessage, true, "UTF-8");
 							messageHelper.setSubject(subject);
-							messageHelper.setTo(email);
+							messageHelper.setTo(record.getEmail());
 							messageHelper.setFrom(from);
-							messageHelper.setText(plain, html);
+							messageHelper.setText(
+									processMessage(plain, record),
+									processMessage(html, record));
 						}
 					};
 
@@ -77,10 +92,10 @@ public class Mailer {
 				} catch (MailException ex) {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Error while sending mail to source: "
-								+ strLine, ex);
+								+ line, ex);
 					} else {
 						logger.error("Error while sending mail to source: {}"
-								+ strLine + ", " + ex.toString());
+								+ line + ", " + ex.toString());
 					}
 				}
 			}
@@ -89,6 +104,42 @@ public class Mailer {
 				reader.close();
 			}
 		}
+	}
+
+	private String processMessage(String message, Record record)
+			throws IOException, TemplateException {
+		Configuration configuration = new Configuration();
+		configuration.setObjectWrapper(new DefaultObjectWrapper());
+		Template template = new Template("message", new StringReader(message),
+				configuration);
+		return FreeMarkerTemplateUtils.processTemplateIntoString(template,
+				record.getModel());
+	}
+
+	private Record getRecord(String line) {
+		Record record = new Record();
+		if (org.springframework.util.CollectionUtils.isEmpty(fields)) {
+			record.setEmail(line);
+		} else {
+
+			String[] split = StringUtils.split(line, ",");
+			if (split.length <= this.emailIndex
+					&& StringUtils.isNotBlank(split[this.emailIndex])) {
+				throw new IllegalArgumentException(
+						"Unable to find email field in {" + line + "}.");
+			}
+			record.setEmail(StringUtils.trimToEmpty(split[this.emailIndex]));
+
+			for (int i = 0; i < fields.size(); i++) {
+				if (i >= split.length) {
+					break;
+				}
+				record.put(StringUtils.trimToEmpty(fields.get(i)),
+						StringUtils.trimToEmpty(split[i]));
+			}
+		}
+
+		return record;
 	}
 
 }
