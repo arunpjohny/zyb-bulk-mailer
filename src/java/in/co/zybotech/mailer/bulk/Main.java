@@ -5,7 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -24,8 +26,8 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		if (args.length != 6) {
-			logger.error("Usage: Main <properties> <source> <fields> <subject> <html> <plain>");
+		if (args.length < 6 || args.length > 7) {
+			logger.error("Usage: Main <properties> <source> <fields> <subject> <html> <plain> [attachment-location]");
 			System.exit(1);
 		}
 
@@ -36,6 +38,7 @@ public class Main {
 			String subject = args[3];
 			String html = args[4];
 			String plain = args[5];
+			String attachLocation = args.length > 6 ? args[6] : null;
 
 			Properties properties = getProperties(propertiesPath);
 			JavaMailSender mailSender = getMailSender(properties);
@@ -56,11 +59,32 @@ public class Main {
 			mailer.setSubject(subject);
 			mailer.html(FileUtils.readFileToString(htmlFile));
 			mailer.plain(FileUtils.readFileToString(plainFile));
+			mailer.setAttachments(getAttachments(attachLocation));
 
 			mailer.send(dbFile);
 		} catch (Exception e) {
 			logger.error(e.toString(), e);
 		}
+	}
+
+	private static Map<String, File> getAttachments(String attachLocation) {
+		Map<String, File> attachments = new HashMap<String, File>();
+		if (StringUtils.isNotBlank(attachLocation)) {
+			File dir = new File(attachLocation);
+			if (!dir.exists() || !dir.isDirectory()) {
+				throw new IllegalArgumentException("Attachment location "
+						+ dir.getAbsolutePath()
+						+ " does not exists or is not a directory.");
+			}
+
+			File[] listFiles = dir.listFiles();
+			for (File file : listFiles) {
+				if (file.isFile()) {
+					attachments.put(file.getName(), file);
+				}
+			}
+		}
+		return attachments;
 	}
 
 	private static List<String> getFields(String fields) {

@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.Map;
 
 import javax.mail.internet.MimeMessage;
 
@@ -31,6 +32,7 @@ public class Mailer {
 	private String subject;
 	private String html;
 	private String plain;
+	private Map<String, File> attachments;
 
 	private int emailIndex;
 
@@ -66,6 +68,10 @@ public class Mailer {
 		this.plain = plain;
 	}
 
+	public void setAttachments(Map<String, File> attachments) {
+		this.attachments = attachments;
+	}
+
 	public void send(File source) throws IOException {
 
 		if (StringUtils.isBlank(html) && StringUtils.isBlank(plain)) {
@@ -99,6 +105,14 @@ public class Mailer {
 							} else if (StringUtils.isNotBlank(html)) {
 								messageHelper.setText(
 										processMessage(html, record), true);
+							}
+
+							if (attachments != null) {
+								for (Map.Entry<String, File> entry : attachments
+										.entrySet()) {
+									messageHelper.addAttachment(entry.getKey(),
+											entry.getValue());
+								}
 							}
 						}
 					};
