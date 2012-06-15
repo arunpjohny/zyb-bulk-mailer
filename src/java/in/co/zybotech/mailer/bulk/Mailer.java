@@ -67,6 +67,12 @@ public class Mailer {
 	}
 
 	public void send(File source) throws IOException {
+
+		if (StringUtils.isBlank(html) && StringUtils.isBlank(plain)) {
+			throw new IllegalArgumentException(
+					"Both HTML and plain contents cannot be blank.");
+		}
+
 		BufferedReader reader = null;
 		try {
 			reader = new BufferedReader(new FileReader(source));
@@ -82,15 +88,15 @@ public class Mailer {
 							messageHelper.setSubject(subject);
 							messageHelper.setTo(record.getEmail());
 							messageHelper.setFrom(from);
-							if (StringUtils.isBlank(plain)
-									&& StringUtils.isBlank(html)) {
+							if (StringUtils.isNotBlank(plain)
+									&& StringUtils.isNotBlank(html)) {
 								messageHelper.setText(
 										processMessage(plain, record),
 										processMessage(html, record));
-							} else if (StringUtils.isBlank(plain)) {
+							} else if (StringUtils.isNotBlank(plain)) {
 								messageHelper.setText(processMessage(plain,
 										record));
-							} else if (StringUtils.isBlank(html)) {
+							} else if (StringUtils.isNotBlank(html)) {
 								messageHelper.setText(
 										processMessage(html, record), true);
 							}
