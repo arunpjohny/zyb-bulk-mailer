@@ -17,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
+import org.springframework.util.CollectionUtils;
 
 import freemarker.template.Configuration;
 import freemarker.template.DefaultObjectWrapper;
@@ -73,6 +74,15 @@ public class Mailer {
 	}
 
 	public void send(File source) throws IOException {
+		if (logger.isDebugEnabled()) {
+			logger.debug(
+					"Sending mails using source: [{}], fields: [{}]"
+							+ ", subject: [{}], html: [{}], plain: [{}] and attachments: [{}].",
+					new Object[] { source, fields, subject, html, plain,
+							attachments });
+		} else {
+			logger.info("Sending mails for source: {}", source);
+		}
 
 		if (StringUtils.isBlank(html) && StringUtils.isBlank(plain)) {
 			throw new IllegalArgumentException(
@@ -84,8 +94,10 @@ public class Mailer {
 			reader = new BufferedReader(new FileReader(source));
 			String line;
 			while ((line = reader.readLine()) != null) {
+				logger.debug("Reading line {}", line);
 				try {
 					final Record record = getRecord(line);
+					logger.info("Sending email to {}", record.getEmail());
 					MimeMessagePreparator preparator = new MimeMessagePreparator() {
 						public void prepare(MimeMessage mimeMessage)
 								throws Exception {
@@ -119,8 +131,8 @@ public class Mailer {
 
 					this.mailSender.send(preparator);
 				} catch (MailException ex) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Error while sending mail to source: "
+					if (logger.isWarnEnabled()) {
+						logger.warn("Error while sending mail to source: "
 								+ line, ex);
 					} else {
 						logger.error("Error while sending mail to source: {}"
