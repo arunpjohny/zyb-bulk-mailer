@@ -82,9 +82,18 @@ public class Mailer {
 							messageHelper.setSubject(subject);
 							messageHelper.setTo(record.getEmail());
 							messageHelper.setFrom(from);
-							messageHelper.setText(
-									processMessage(plain, record),
-									processMessage(html, record));
+							if (StringUtils.isBlank(plain)
+									&& StringUtils.isBlank(html)) {
+								messageHelper.setText(
+										processMessage(plain, record),
+										processMessage(html, record));
+							} else if (StringUtils.isBlank(plain)) {
+								messageHelper.setText(processMessage(plain,
+										record));
+							} else if (StringUtils.isBlank(html)) {
+								messageHelper.setText(
+										processMessage(html, record), true);
+							}
 						}
 					};
 
