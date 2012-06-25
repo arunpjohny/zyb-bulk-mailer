@@ -1,5 +1,7 @@
 package in.co.zybotech.mailer.bulk;
 
+import in.co.zybotech.mailer.bulk.impl.MailerImpl;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -51,7 +53,7 @@ public class Main {
 				throw new IllegalArgumentException("Subject cannot be empty.");
 			}
 
-			Mailer mailer = new Mailer();
+			Mailer mailer = new MailerImpl();
 			mailer.setLogger(logger);
 			mailer.setSender(mailSender);
 			mailer.setFields(getFields(fields));
