@@ -1,11 +1,5 @@
 package in.co.zybotech.mailer.bulk.impl;
 
-import freemarker.template.Configuration;
-import freemarker.template.DefaultObjectWrapper;
-import freemarker.template.Template;
-import freemarker.template.TemplateException;
-import in.co.zybotech.mailer.bulk.Mailer;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -15,63 +9,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.internet.MimeMessage;
-
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
-public class MailerImpl implements Mailer {
-	private Logger logger;
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 
-	private JavaMailSender mailSender;
-	private List<String> fields;
-	private String from;
-	private String subject;
-	private String html;
-	private String plain;
-	private Map<String, File> attachments;
-
-	private int emailIndex;
-
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-
-	public void setSender(JavaMailSender mailSender) {
-		this.mailSender = mailSender;
-	}
+public class MailerImpl extends AbstractMailer {
+	protected int emailIndex;
 
 	public void setFields(List<String> fields) {
-		this.fields = fields;
+		super.setFields(fields);
 		if (fields != null) {
 			this.emailIndex = fields.indexOf("email");
 		}
-	}
-
-	public void setFrom(String from) {
-		this.from = from;
-	}
-
-	public void setSubject(String subject) {
-		this.subject = subject;
-
-	}
-
-	public void html(String html) {
-		this.html = html;
-	}
-
-	public void plain(String plain) {
-		this.plain = plain;
-	}
-
-	public void setAttachments(Map<String, File> attachments) {
-		this.attachments = attachments;
 	}
 
 	public void send(File source) throws IOException {
@@ -99,39 +52,15 @@ public class MailerImpl implements Mailer {
 				try {
 					final Record record = getRecord(line);
 					logger.info("Sending email to {}", record.getEmail());
-					MimeMessagePreparator preparator = new MimeMessagePreparator() {
-						public void prepare(MimeMessage mimeMessage)
-								throws Exception {
-							MimeMessageHelper messageHelper = new MimeMessageHelper(
-									mimeMessage, true, "UTF-8");
-							messageHelper.setSubject(subject);
-							messageHelper.setTo(record.getEmail());
-							messageHelper.setFrom(from);
-							if (StringUtils.isNotBlank(plain)
-									&& StringUtils.isNotBlank(html)) {
-								messageHelper.setText(
-										processMessage(plain, record),
-										processMessage(html, record));
-							} else if (StringUtils.isNotBlank(plain)) {
-								messageHelper.setText(processMessage(plain,
-										record));
-							} else if (StringUtils.isNotBlank(html)) {
-								messageHelper.setText(
-										processMessage(html, record), true);
-							}
 
-							if (attachments != null) {
-								for (Map.Entry<String, File> entry : attachments
-										.entrySet()) {
-									messageHelper.addAttachment(entry.getKey(),
-											entry.getValue());
-								}
-							}
-						}
-					};
+					final String email = record.getEmail();
+					final String plainBody = StringUtils.isBlank(plain) ? null
+							: processMessage(plain, record);
+					final String htmlBody = StringUtils.isBlank(html) ? null
+							: processMessage(html, record);
 
-					this.mailSender.send(preparator);
-				} catch (MailException ex) {
+					mail(email, htmlBody, plainBody);
+				} catch (Exception ex) {
 					if (logger.isWarnEnabled()) {
 						logger.warn("Error while sending mail to source: "
 								+ line, ex);
@@ -148,7 +77,7 @@ public class MailerImpl implements Mailer {
 		}
 	}
 
-	private String processMessage(String message, Record record)
+	protected String processMessage(String message, Record record)
 			throws IOException, TemplateException {
 		Configuration configuration = new Configuration();
 		configuration.setObjectWrapper(new DefaultObjectWrapper());
@@ -158,7 +87,7 @@ public class MailerImpl implements Mailer {
 				record.getModel());
 	}
 
-	private Record getRecord(String line) {
+	protected Record getRecord(String line) {
 		Record record = new Record();
 		if (org.springframework.util.CollectionUtils.isEmpty(fields)) {
 			record.setEmail(line);

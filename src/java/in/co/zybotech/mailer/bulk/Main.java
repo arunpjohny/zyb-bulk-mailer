@@ -1,6 +1,7 @@
 package in.co.zybotech.mailer.bulk;
 
 import in.co.zybotech.mailer.bulk.impl.MailerImpl;
+import in.co.zybotech.mailer.bulk.impl.SimpleMailerImpl;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,19 +29,30 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		if (args.length < 6 || args.length > 7) {
-			logger.error("Usage: Main <properties> <source> <fields> <subject> <html> <plain> [attachment-location]");
+		if (args.length < 1) {
+			logger.error("Usage: Main <v1|v2> {options}");
+			System.exit(1);
+		}
+
+		if (args.length < 7 || args.length > 8) {
+			logger.error("Usage: Main <v1|v2> <properties> <source> <fields> <subject> <html> <plain> [attachment-location]");
 			System.exit(1);
 		}
 
 		try {
-			String propertiesPath = args[0];
-			String db = args[1];
-			String fields = args[2];
-			String subject = args[3];
-			String html = args[4];
-			String plain = args[5];
-			String attachLocation = args.length > 6 ? args[6] : null;
+			String v = args[0];
+			if (!StringUtils.equals("v1", v) && !StringUtils.equals("v2", v)) {
+				logger.error("Usage: Main <v1|v2> <properties> <source> <fields> <subject> <html> <plain> [attachment-location]");
+				System.exit(1);
+			}
+
+			String propertiesPath = args[1];
+			String db = args[2];
+			String fields = args[3];
+			String subject = args[4];
+			String html = args[5];
+			String plain = args[6];
+			String attachLocation = args.length > 7 ? args[7] : null;
 
 			Properties properties = getProperties(propertiesPath);
 			JavaMailSender mailSender = getMailSender(properties);
@@ -53,7 +65,8 @@ public class Main {
 				throw new IllegalArgumentException("Subject cannot be empty.");
 			}
 
-			Mailer mailer = new MailerImpl();
+			Mailer mailer = StringUtils.equals("v1", v) ? new MailerImpl()
+					: new SimpleMailerImpl();
 			mailer.setLogger(logger);
 			mailer.setSender(mailSender);
 			mailer.setFields(getFields(fields));
